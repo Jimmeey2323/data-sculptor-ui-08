@@ -74,18 +74,16 @@ interface DashboardProps {
 }
 
 export const trainerAvatars: Record<string, string> = {
-  "Siddhartha Kusuma": "https://i.imgur.com/XE0p6mW.jpg",
-  "Shruti Suresh": "https://i.imgur.com/dBuz7oK.jpg",
-  "Poojitha Bhaskar": "https://i.imgur.com/dvPLVXg.jpg",
-  "Pushyank Nahar": "https://i.imgur.com/aHAJw6U.jpg",
-  "Shruti Kulkarni": "https://i.imgur.com/CW2ZOUy.jpg",
-  "Karan Bhatia": "https://i.imgur.com/y6d1H2z.jpg",
-  "Pranjali Jain": "https://i.imgur.com/Hx8hTAk.jpg",
-  "Anisha Shah": "https://i.imgur.com/7GM2oPn.jpg",
-  "Saniya Jaiswal": "https://i.imgur.com/EP32RoZ.jpg",
-  "Vivaran Dhasmana": "https://i.imgur.com/HGrGuq9.jpg",
-  "Kajol Kanchan": "https://postimg.cc/Cz9khg6L",
-  "Veena Narasimhan": "https://i.postimg.cc/T339c2Vm/150320-picture.jpg"
+  'Kajol': 'https://i.postimg.cc/s2t4ypt9/80638-picture.jpg',
+  'Shreya': 'https://images.unsplash.com/photo-1607274016862-4fcdc7f8e98d',
+  'Priti': 'https://images.unsplash.com/photo-1550345332-09e3ac987658',
+  'Swati': 'https://images.unsplash.com/photo-1580489944761-15a19d654956',
+  'Krishna': 'https://images.unsplash.com/photo-1530268771320-e8fbd1c86d2c',
+  'Tanya': 'https://images.unsplash.com/photo-1566753323558-f4e0952af115',
+  'Gayatri': 'https://images.unsplash.com/photo-1548142813-c348350df52b',
+  'Amit': 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c',
+  'Ravi': 'https://images.unsplash.com/photo-1560250097-0b93528c311a',
+  'Sunita': 'https://images.unsplash.com/photo-1590001602951-e7b4b29506e6'
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ 

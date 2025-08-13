@@ -5,7 +5,8 @@ import {
   Settings, Eye, EyeOff, Layers, Type, Palette, Bookmark,
   BookmarkX, Filter, MapPin, Calendar, BarChart3, Clock,
   ListFilter, User, ListChecks, IndianRupee, LayoutGrid,
-  LayoutList, Kanban, LineChart, Download, Sliders
+  LayoutList, Kanban, LineChart, Download, Sliders, Sparkles,
+  TrendingUp, Users, Target, Award, Zap
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
@@ -27,6 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trainerAvatars } from './Dashboard';
 import { formatIndianCurrency } from './MetricsPanel';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 
 interface DataTableProps {
   data: ProcessedData[];
@@ -68,6 +71,8 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
   const [groupBy, setGroupBy] = useState("class-day-time-location");
   const [tableView, setTableView] = useState("grouped");
   const [rowHeight, setRowHeight] = useState(35);
+  const [summaryNotes, setSummaryNotes] = useState("Key insights from the data analysis will be displayed here...");
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
 
   // Group data by selected grouping option
   const groupedData = useMemo(() => {
@@ -114,7 +119,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
           key: `flat-${data.indexOf(item)}`,
           isChild: true,
           // For flat view, each row represents individual occurrences
-          displayOccurrences: totalOccurrencesCount,
+          totalOccurrences: totalOccurrencesCount,
           totalEmpty: emptyOccurrences,
           totalNonEmpty: nonEmptyOccurrences,
           // Recalculate averages based on actual occurrences
@@ -149,7 +154,6 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
           totalNonPaid: 0,
           totalPayout: 0,
           totalTips: 0,
-          displayOccurrences: 0,
           allOccurrences: [] // Track all occurrences across children
         };
       }
@@ -162,7 +166,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
       groups[groupKey].children.push({
         ...item,
         // Individual rows in grouped view should show their actual occurrence count
-        displayOccurrences: childTotalOccurrences,
+        totalOccurrences: childTotalOccurrences,
         totalEmpty: childEmptyOccurrences,
         totalNonEmpty: childNonEmptyOccurrences,
         // Recalculate averages for individual rows based on their occurrences
@@ -197,16 +201,16 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     
     // Calculate group-level metrics based on all occurrences
     Object.values(groups).forEach((group: any) => {
-      // Set displayOccurrences to the total count of all occurrences in the group
-      group.displayOccurrences = group.allOccurrences.length;
+      // Set totalOccurrences to the total count of all occurrences in the group
+      group.totalOccurrences = group.allOccurrences.length;
       
       // Calculate empty and non-empty based on all occurrences
       group.totalEmpty = group.allOccurrences.filter((occ: any) => occ.isEmpty).length;
       group.totalNonEmpty = group.allOccurrences.filter((occ: any) => !occ.isEmpty).length;
       
       // Calculate averages for each group
-      group.classAverageIncludingEmpty = group.displayOccurrences > 0 
-        ? group.totalCheckins / group.displayOccurrences 
+      group.classAverageIncludingEmpty = group.totalOccurrences > 0 
+        ? group.totalCheckins / group.totalOccurrences 
         : 0;
         
       group.classAverageExcludingEmpty = group.totalNonEmpty > 0 
@@ -318,7 +322,6 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
       acc.totalRevenue += Number(group.totalRevenue || 0);
       acc.totalOccurrences += Number(group.totalOccurrences || 0);
       acc.totalCancelled += Number(group.totalCancelled || 0);
-      acc.displayOccurrences += Number(group.displayOccurrences || 0);
       acc.totalEmpty += Number(group.totalEmpty || 0);
       acc.totalNonEmpty += Number(group.totalNonEmpty || 0);
       return acc;
@@ -327,7 +330,6 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
       totalRevenue: 0,
       totalOccurrences: 0,
       totalCancelled: 0,
-      displayOccurrences: 0,
       totalEmpty: 0,
       totalNonEmpty: 0
     });
@@ -343,7 +345,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     ];
     
     const attendanceColumns: ColumnDefinition[] = [
-      { key: "displayOccurrences", label: "Classes", numeric: true, currency: false, iconComponent: <ListFilter className="h-4 w-4" />, visible: true },
+      { key: "totalOccurrences", label: "Classes", numeric: true, currency: false, iconComponent: <ListFilter className="h-4 w-4" />, visible: true },
       { key: "totalEmpty", label: "Empty", numeric: true, currency: false, iconComponent: <ListFilter className="h-4 w-4" />, visible: true },
       { key: "totalNonEmpty", label: "Non-empty", numeric: true, currency: false, iconComponent: <ListFilter className="h-4 w-4" />, visible: true },
       { key: "totalCheckins", label: "Checked In", numeric: true, currency: false, iconComponent: <ListChecks className="h-4 w-4" />, visible: true },
@@ -368,7 +370,7 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
       case "compact":
         return [...baseColumns.slice(0, 2), 
                 { key: "classTime", label: "Time", iconComponent: <Clock className="h-4 w-4" />, numeric: false, currency: false, visible: true },
-                { key: "displayOccurrences", label: "Classes", numeric: true, currency: false, iconComponent: <ListFilter className="h-4 w-4" />, visible: true },
+                { key: "totalOccurrences", label: "Classes", numeric: true, currency: false, iconComponent: <ListFilter className="h-4 w-4" />, visible: true },
                 { key: "totalCheckins", label: "Checked In", numeric: true, currency: false, iconComponent: <ListChecks className="h-4 w-4" />, visible: true },
                 { key: "classAverageIncludingEmpty", label: "Avg. (All)", numeric: true, currency: false, iconComponent: <BarChart3 className="h-4 w-4" />, visible: true },
                 financialColumns[0]];
@@ -513,95 +515,133 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
   };
   
   return (
-    <div className="relative">
-      {/* Modern Header Section */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 p-6 rounded-t-xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="relative bg-gradient-to-br from-background via-muted/5 to-muted/10 min-h-screen">
+      {/* Glassmorphism Header Section */}
+      <div className="glass-card backdrop-blur-xl bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 border-primary/10 dark:border-primary/20 p-8 mb-6 rounded-2xl shadow-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-6">
+          {/* Animated Title */}
+          <div className="flex items-center gap-4">
+            <motion.div
+              className="p-3 rounded-xl bg-gradient-to-br from-primary to-secondary shadow-lg"
+              animate={{ 
+                rotate: [0, 5, -5, 0],
+                scale: [1, 1.05, 1] 
+              }}
+              transition={{ 
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <Sparkles className="h-8 w-8 text-primary-foreground" />
+            </motion.div>
+            <div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Data Analytics Hub
+              </h2>
+              <p className="text-muted-foreground mt-1">Advanced insights and visualizations</p>
+            </div>
+          </div>
+          
+          {/* Enhanced Search */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               value={searchTerm}
               onChange={handleSearchChange}
               placeholder="Search classes, trainers, locations..."
-              className="pl-9 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-300 dark:border-slate-600 shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+              className="pl-12 h-12 bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg focus:ring-4 focus:ring-primary/20 transition-all text-base rounded-xl"
             />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                onClick={() => setSearchTerm('')}
+              >
+                ×
+              </Button>
+            )}
           </div>
           
+          {/* Enhanced Controls */}
           <div className="flex flex-wrap gap-3">
-            {/* Enhanced Controls with modern styling */}
             <Select value={groupBy} onValueChange={setGroupBy}>
-              <SelectTrigger className="w-[200px] bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-300 dark:border-slate-600 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-primary" />
+              <SelectTrigger className="w-[220px] h-12 bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Filter className="h-5 w-5 text-primary" />
                   <SelectValue placeholder="Group By" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-slate-300 dark:border-slate-600">
+              <SelectContent className="bg-background/95 backdrop-blur-md border-primary/20 rounded-xl shadow-2xl">
                 <SelectGroup>
-                  <SelectLabel className="text-muted-foreground font-medium">Grouping Options</SelectLabel>
+                  <SelectLabel className="text-muted-foreground font-semibold px-3 py-2">Grouping Options</SelectLabel>
                   {groupingOptions.map(option => (
-                    <SelectItem key={option.id} value={option.id} className="focus:bg-primary/10">{option.label}</SelectItem>
+                    <SelectItem key={option.id} value={option.id} className="focus:bg-primary/10 rounded-lg mx-1">{option.label}</SelectItem>
                   ))}
                 </SelectGroup>
               </SelectContent>
             </Select>
             
             <Select value={viewMode} onValueChange={setViewMode}>
-              <SelectTrigger className="w-[160px] bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-300 dark:border-slate-600 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-primary" />
+              <SelectTrigger className="w-[180px] h-12 bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Eye className="h-5 w-5 text-primary" />
                   <SelectValue placeholder="View Mode" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-slate-300 dark:border-slate-600">
+              <SelectContent className="bg-background/95 backdrop-blur-md border-primary/20 rounded-xl shadow-2xl">
                 <SelectGroup>
-                  <SelectLabel className="text-muted-foreground font-medium">View Mode</SelectLabel>
+                  <SelectLabel className="text-muted-foreground font-semibold px-3 py-2">View Mode</SelectLabel>
                   {viewModes.map(mode => (
-                    <SelectItem key={mode.id} value={mode.id} className="focus:bg-primary/10">{mode.label}</SelectItem>
+                    <SelectItem key={mode.id} value={mode.id} className="focus:bg-primary/10 rounded-lg mx-1">{mode.label}</SelectItem>
                   ))}
                 </SelectGroup>
               </SelectContent>
             </Select>
             
-            <Tabs value={tableView} onValueChange={setTableView} className="w-[180px]">
-              <TabsList className="grid w-full grid-cols-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
-                <TabsTrigger value="grouped" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Grouped</TabsTrigger>
-                <TabsTrigger value="flat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Flat</TabsTrigger>
+            <Tabs value={tableView} onValueChange={setTableView} className="w-[200px]">
+              <TabsList className="grid w-full grid-cols-2 bg-muted/50 backdrop-blur-sm h-12 rounded-xl">
+                <TabsTrigger value="grouped" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg font-medium">Grouped</TabsTrigger>
+                <TabsTrigger value="flat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg font-medium">Flat</TabsTrigger>
               </TabsList>
             </Tabs>
             
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-300 dark:border-slate-600 shadow-sm hover:bg-primary/5">
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Customize</span>
+                <Button variant="outline" size="lg" className="flex items-center gap-2 bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg hover:bg-primary/5 h-12 px-6 rounded-xl">
+                  <Settings className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Customize</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-slate-300 dark:border-slate-600">
+              <DialogContent className="bg-background/95 backdrop-blur-md border-primary/20 rounded-2xl shadow-2xl max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Table Customization</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                    <Sliders className="h-6 w-6 text-primary" />
+                    Table Customization
+                  </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 mt-4">
+                <div className="space-y-6 mt-6">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Visible Columns</h4>
+                    <h4 className="font-semibold text-lg">Visible Columns</h4>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={resetColumnVisibility}
-                      className="text-xs"
+                      className="text-sm font-medium"
                     >
-                      Reset
+                      Reset All
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                  <div className="grid grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2">
                     {columns.map(col => (
-                      <div key={col.key} className="flex items-center space-x-2">
+                      <div key={col.key} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/30">
                         <Checkbox 
                           id={`column-${col.key}`} 
                           checked={columnVisibility[col.key] !== false} 
                           onCheckedChange={() => toggleColumnVisibility(col.key)}
                         />
-                        <Label htmlFor={`column-${col.key}`} className="flex items-center gap-1.5">
+                        <Label htmlFor={`column-${col.key}`} className="flex items-center gap-2 font-medium cursor-pointer">
                           {col.iconComponent && (
                             <span className="text-muted-foreground">{col.iconComponent}</span>
                           )}
@@ -611,14 +651,14 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                     ))}
                   </div>
                   
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Items per page</h4>
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-lg">Items per page</h4>
                     <RadioGroup value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-6">
                         {[5, 10, 25, 50].map(size => (
                           <div key={size} className="flex items-center space-x-2">
                             <RadioGroupItem value={size.toString()} id={`page-${size}`} />
-                            <Label htmlFor={`page-${size}`}>{size}</Label>
+                            <Label htmlFor={`page-${size}`} className="font-medium">{size}</Label>
                           </div>
                         ))}
                       </div>
@@ -628,53 +668,76 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
               </DialogContent>
             </Dialog>
             
-            <Button variant="outline" size="sm" onClick={exportCSV} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-300 dark:border-slate-600 shadow-sm hover:bg-primary/5">
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
+            <Button variant="outline" size="lg" onClick={exportCSV} className="bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg hover:bg-primary/5 h-12 px-6 rounded-xl">
+              <Download className="mr-2 h-5 w-5" />
+              <span className="font-medium">Export CSV</span>
             </Button>
           </div>
         </div>
       </div>
       
-      {/* Modern Table Container */}
-      <div className="bg-white dark:bg-slate-900 shadow-xl rounded-b-xl overflow-hidden">
+      {/* Enhanced Table Container */}
+      <div className="glass-card bg-background/90 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border border-primary/10">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <motion.tr 
-                className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700"
-                initial={{ opacity: 0, y: -10 }}
+                className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-b-2 border-primary/20"
+                initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.5 }}
               >
                 {tableView === "grouped" && groupBy !== "none" && (
-                  <TableHead className="w-[40px] border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"></TableHead>
+                  <TableHead className="w-[60px] border-r border-primary/20 bg-gradient-to-b from-primary/5 to-secondary/5">
+                    <motion.div
+                      animate={{ rotate: [0, 10, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Layers className="h-5 w-5 text-primary mx-auto" />
+                    </motion.div>
+                  </TableHead>
                 )}
                 {visibleColumns.map((column, index) => (
                   <motion.th 
                     key={column.key}
                     className={cn(
-                      "h-[50px] px-6 font-semibold text-slate-700 dark:text-slate-200 border-r border-slate-200 dark:border-slate-700 last:border-r-0 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900",
+                      "h-[60px] px-6 font-bold text-foreground border-r border-primary/20 last:border-r-0 bg-gradient-to-b from-primary/5 to-secondary/5",
                       column.numeric ? "text-right" : "text-left",
-                      "hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer select-none whitespace-nowrap"
+                      "hover:bg-primary/10 transition-all duration-300 cursor-pointer select-none whitespace-nowrap group"
                     )}
                     onClick={() => requestSort(column.key)}
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
                   >
                     <div className={cn(
-                      "flex items-center gap-2",
+                      "flex items-center gap-3 group-hover:scale-105 transition-transform",
                       column.numeric ? "justify-end" : "justify-start"
                     )}>
                       {!column.numeric && column.iconComponent && (
-                        <span className="text-primary/70">{column.iconComponent}</span>
+                        <motion.span 
+                          className="text-primary"
+                          whileHover={{ scale: 1.2, rotate: 10 }}
+                        >
+                          {column.iconComponent}
+                        </motion.span>
                       )}
-                      <span className="font-medium">{column.label}</span>
+                      <span className="font-bold text-lg">{column.label}</span>
                       {column.numeric && column.iconComponent && (
-                        <span className="text-primary/70">{column.iconComponent}</span>
+                        <motion.span 
+                          className="text-primary"
+                          whileHover={{ scale: 1.2, rotate: 10 }}
+                        >
+                          {column.iconComponent}
+                        </motion.span>
                       )}
-                      {getSortIndicator(column.key)}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: sortConfig?.key === column.key ? 1 : 0 }}
+                        className="text-primary"
+                      >
+                        {getSortIndicator(column.key)}
+                      </motion.div>
                     </div>
                   </motion.th>
                 ))}
@@ -688,24 +751,30 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                       {/* Enhanced Parent Row */}
                       <motion.tr 
                         className={cn(
-                          "cursor-pointer hover:bg-primary/5 transition-all duration-200 border-b border-slate-100 dark:border-slate-800 group",
-                          expandedRows[group.key] && "bg-primary/10 shadow-sm",
-                          groupIndex % 2 === 0 ? "bg-slate-25 dark:bg-slate-900/30" : "bg-white dark:bg-slate-900"
+                          "cursor-pointer hover:bg-gradient-to-r hover:from-primary/5 hover:to-secondary/5 transition-all duration-300 border-b border-primary/10 group",
+                          expandedRows[group.key] && "bg-gradient-to-r from-primary/10 to-secondary/10 shadow-lg",
+                          groupIndex % 2 === 0 ? "bg-muted/30" : "bg-background"
                         )}
                         onClick={() => toggleRowExpansion(group.key)}
-                        style={{ height: `${rowHeight}px` }}
-                        initial={{ opacity: 0, x: -20 }}
+                        style={{ height: `${rowHeight + 10}px` }}
+                        initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: groupIndex * 0.05 }}
+                        transition={{ duration: 0.4, delay: groupIndex * 0.1 }}
+                        whileHover={{ scale: 1.01 }}
                       >
                         {tableView === "grouped" && groupBy !== "none" && (
-                          <TableCell className="py-2 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-primary/20 transition-colors">
-                              {expandedRows[group.key] ? (
-                                <ChevronDown className="h-4 w-4 text-primary" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                              )}
+                          <TableCell className="py-3 border-r border-primary/20 bg-gradient-to-b from-primary/5 to-secondary/5">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 p-0 hover:bg-primary/20 transition-all duration-300 rounded-lg">
+                              <motion.div
+                                animate={{ rotate: expandedRows[group.key] ? 90 : 0 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                {expandedRows[group.key] ? (
+                                  <ChevronDown className="h-5 w-5 text-primary" />
+                                ) : (
+                                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                )}
+                              </motion.div>
                             </Button>
                           </TableCell>
                         )}
@@ -714,17 +783,17 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                           if (column.key === 'teacherName') {
                             return (
                               <TableCell key={column.key} className={cn(
-                                "py-3 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                                "py-4 px-6 border-r border-primary/20 last:border-r-0", 
                                 column.numeric ? "text-right" : "text-left"
                               )}>
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-8 w-8 ring-2 ring-primary/20 shadow-sm">
+                                <div className="flex items-center gap-4">
+                                  <Avatar className="h-10 w-10 ring-2 ring-primary/30 shadow-lg">
                                     <AvatarImage src={trainerAvatars[group.teacherName]} />
-                                    <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-bold text-base">
                                       {group.teacherName?.charAt(0)}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="font-medium text-foreground whitespace-nowrap">{group.teacherName}</span>
+                                  <span className="font-semibold text-foreground whitespace-nowrap">{group.teacherName}</span>
                                 </div>
                               </TableCell>
                             );
@@ -733,27 +802,27 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                           if (column.key === 'cleanedClass' && tableView === 'grouped') {
                             return (
                               <TableCell key={column.key} className={cn(
-                                "py-3 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                                "py-4 px-6 border-r border-primary/20 last:border-r-0", 
                                 column.numeric ? "text-right" : "text-left"
                               )}>
-                                <div className="flex items-center gap-3">
-                                  <Badge variant="secondary" className="font-medium bg-primary/10 text-primary border-primary/20 shadow-sm">
-                                    {group.displayOccurrences || 0}
+                                <div className="flex items-center gap-4">
+                                  <Badge variant="secondary" className="font-semibold bg-gradient-to-r from-primary/15 to-secondary/15 text-primary border-primary/30 shadow-md px-3 py-1">
+                                    {group.totalOccurrences || 0}
                                   </Badge>
-                                  <span className="font-medium whitespace-nowrap">{group.cleanedClass}</span>
+                                  <span className="font-semibold text-lg whitespace-nowrap">{group.cleanedClass}</span>
                                 </div>
                               </TableCell>
                             );
                           }
                           
-                          if (column.key === 'displayOccurrences') {
+                          if (column.key === 'totalOccurrences') {
                             return (
                               <TableCell key={column.key} className={cn(
-                                "py-3 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                                "py-4 px-6 border-r border-primary/20 last:border-r-0", 
                                 column.numeric ? "text-right" : "text-left"
                               )}>
-                                <span className="font-mono text-sm font-medium">
-                                  {group.displayOccurrences || 0}
+                                <span className="font-mono text-base font-semibold text-primary">
+                                  {group.totalOccurrences || 0}
                                 </span>
                               </TableCell>
                             );
@@ -762,10 +831,10 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                           if (column.key === 'totalEmpty') {
                             return (
                               <TableCell key={column.key} className={cn(
-                                "py-3 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0 text-red-600 dark:text-red-400", 
+                                "py-4 px-6 border-r border-primary/20 last:border-r-0 text-destructive", 
                                 column.numeric ? "text-right" : "text-left"
                               )}>
-                                <span className="font-mono text-sm font-medium">
+                                <span className="font-mono text-base font-semibold">
                                   {group.totalEmpty || 0}
                                 </span>
                               </TableCell>
@@ -775,10 +844,10 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                           if (column.key === 'totalNonEmpty') {
                             return (
                               <TableCell key={column.key} className={cn(
-                                "py-3 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0 text-green-600 dark:text-green-400", 
+                                "py-4 px-6 border-r border-primary/20 last:border-r-0 text-green-600 dark:text-green-400", 
                                 column.numeric ? "text-right" : "text-left"
                               )}>
-                                <span className="font-mono text-sm font-medium">
+                                <span className="font-mono text-base font-semibold">
                                   {group.totalNonEmpty || 0}
                                 </span>
                               </TableCell>
@@ -789,10 +858,10 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                             const value = group[column.key];
                             return (
                               <TableCell key={column.key} className={cn(
-                                "py-3 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                                "py-4 px-6 border-r border-primary/20 last:border-r-0", 
                                 column.numeric ? "text-right" : "text-left"
                               )}>
-                                <span className="font-mono text-sm">
+                                <span className="font-mono text-base font-semibold">
                                   {typeof value === 'number' ? value.toFixed(1) : value}
                                 </span>
                               </TableCell>
@@ -801,12 +870,12 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                           
                           return (
                             <TableCell key={column.key} className={cn(
-                              "py-3 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                              "py-4 px-6 border-r border-primary/20 last:border-r-0", 
                               column.numeric ? "text-right" : "text-left"
                             )}>
                               <span className={cn(
-                                column.numeric && "font-mono text-sm",
-                                column.currency && "text-emerald-600 dark:text-emerald-400 font-medium",
+                                column.numeric && "font-mono text-base font-semibold",
+                                column.currency && "text-emerald-600 dark:text-emerald-400",
                                 "whitespace-nowrap"
                               )}>
                                 {formatCellValue(column.key, group[column.key])}
@@ -822,17 +891,21 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                           {group.children.map((item: ProcessedData, index: number) => (
                             <motion.tr 
                               key={`${group.key}-child-${index}`}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              transition={{ duration: 0.2, delay: index * 0.03 }}
-                              className="bg-slate-50/50 dark:bg-slate-800/30 text-sm border-b border-slate-100 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 transition-colors"
-                              style={{ height: `${rowHeight}px` }}
+                              initial={{ opacity: 0, y: -15, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -15, scale: 0.98 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                              className="bg-gradient-to-r from-muted/40 to-muted/20 text-sm border-b border-primary/5 hover:bg-gradient-to-r hover:from-primary/5 hover:to-secondary/5 transition-all duration-300"
+                              style={{ height: `${rowHeight + 5}px` }}
                             >
                               {tableView === "grouped" && groupBy !== "none" && (
-                                <TableCell className="border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                                  <div className="w-6 h-6 flex items-center justify-center">
-                                    <div className="w-2 h-2 rounded-full bg-primary/40"></div>
+                                <TableCell className="border-r border-primary/20 bg-gradient-to-b from-muted/50 to-muted/30">
+                                  <div className="w-8 h-8 flex items-center justify-center">
+                                    <motion.div 
+                                      className="w-3 h-3 rounded-full bg-gradient-to-r from-primary/60 to-secondary/60"
+                                      animate={{ scale: [1, 1.2, 1] }}
+                                      transition={{ duration: 2, repeat: Infinity }}
+                                    />
                                   </div>
                                 </TableCell>
                               )}
@@ -841,97 +914,31 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                                 if (column.key === 'teacherName') {
                                   return (
                                     <TableCell key={`child-${column.key}`} className={cn(
-                                      "py-2 px-6 pl-12 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                                      "py-3 px-6 pl-16 border-r border-primary/20 last:border-r-0", 
                                       column.numeric ? "text-right" : "text-left"
                                     )}>
-                                      <div className="flex items-center gap-2">
-                                        <Avatar className="h-6 w-6 ring-1 ring-primary/20">
+                                      <div className="flex items-center gap-3">
+                                        <Avatar className="h-7 w-7 ring-1 ring-primary/30">
                                           <AvatarImage src={trainerAvatars[item.teacherName]} />
-                                          <AvatarFallback className="bg-primary/5 text-primary text-xs">
+                                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                                             {item.teacherName?.charAt(0)}
                                           </AvatarFallback>
                                         </Avatar>
-                                        <span className="text-muted-foreground whitespace-nowrap">{item.teacherName}</span>
+                                        <span className="text-muted-foreground font-medium whitespace-nowrap">{item.teacherName}</span>
                                       </div>
-                                    </TableCell>
-                                  );
-                                }
-                                
-                                if (column.key === 'cleanedClass') {
-                                  return (
-                                    <TableCell key={`child-${column.key}`} className="py-2 px-6 pl-12 border-r border-slate-200 dark:border-slate-700 last:border-r-0">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-muted-foreground whitespace-nowrap">{item.cleanedClass}</span>
-                                        <Badge variant="outline" className="text-[10px] h-4 px-1 font-normal bg-background/50">
-                                          {item.date ? new Date(item.date.split(',')[0]).toLocaleDateString() : ""}
-                                        </Badge>
-                                      </div>
-                                    </TableCell>
-                                  );
-                                }
-                                
-                                if (column.key === 'totalEmpty') {
-                                  return (
-                                    <TableCell key={`child-${column.key}`} className={cn(
-                                      "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0 text-red-600 dark:text-red-400", 
-                                      column.numeric ? "text-right" : "text-left"
-                                    )}>
-                                      <span className="text-muted-foreground font-mono text-xs">
-                                        {item.totalEmpty || 0}
-                                      </span>
-                                    </TableCell>
-                                  );
-                                }
-                                
-                                if (column.key === 'totalNonEmpty') {
-                                  return (
-                                    <TableCell key={`child-${column.key}`} className={cn(
-                                      "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0 text-green-600 dark:text-green-400", 
-                                      column.numeric ? "text-right" : "text-left"
-                                    )}>
-                                      <span className="text-muted-foreground font-mono text-xs">
-                                        {item.totalNonEmpty || 0}
-                                      </span>
-                                    </TableCell>
-                                  );
-                                }
-                                
-                                if (column.key === 'displayOccurrences') {
-                                  return (
-                                    <TableCell key={`child-${column.key}`} className={cn(
-                                      "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
-                                      column.numeric ? "text-right" : "text-left"
-                                    )}>
-                                      <span className="text-muted-foreground font-mono text-xs">
-                                        {item.displayOccurrences || 1}
-                                      </span>
-                                    </TableCell>
-                                  );
-                                }
-                                
-                                if (column.key === 'classAverageIncludingEmpty' || column.key === 'classAverageExcludingEmpty') {
-                                  const value = item[column.key as keyof ProcessedData];
-                                  return (
-                                    <TableCell key={`child-${column.key}`} className={cn(
-                                      "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
-                                      column.numeric ? "text-right" : "text-left"
-                                    )}>
-                                      <span className="text-muted-foreground font-mono text-xs">
-                                        {typeof value === 'number' ? value.toFixed(1) : value}
-                                      </span>
                                     </TableCell>
                                   );
                                 }
                                 
                                 return (
                                   <TableCell key={`child-${column.key}`} className={cn(
-                                    "py-2 px-6 border-r border-slate-200 dark:border-slate-700 last:border-r-0", 
+                                    "py-3 px-6 border-r border-primary/20 last:border-r-0", 
                                     column.numeric ? "text-right" : "text-left"
                                   )}>
                                     <span className={cn(
-                                      "text-muted-foreground",
-                                      column.numeric && "font-mono text-xs",
-                                      column.currency && "text-emerald-600/70 dark:text-emerald-400/70",
+                                      "text-muted-foreground font-medium",
+                                      column.numeric && "font-mono text-sm",
+                                      column.currency && "text-emerald-600/80 dark:text-emerald-400/80",
                                       "whitespace-nowrap"
                                     )}>
                                       {formatCellValue(column.key, item[column.key as keyof ProcessedData])}
@@ -946,18 +953,23 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                     </React.Fragment>
                   ))}
                   
-                  {/* Totals Row */}
+                  {/* Enhanced Totals Row */}
                   <motion.tr 
-                    className="bg-gradient-to-r from-primary/5 to-primary/10 border-t-2 border-primary/20 font-semibold"
-                    initial={{ opacity: 0, y: 10 }}
+                    className="bg-gradient-to-r from-primary/15 via-secondary/15 to-accent/15 border-t-4 border-primary/30 font-bold shadow-lg"
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.2 }}
-                    style={{ height: `${rowHeight + 5}px` }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    style={{ height: `${rowHeight + 15}px` }}
                   >
                     {tableView === "grouped" && groupBy !== "none" && (
-                      <TableCell className="border-r border-primary/20 bg-primary/10">
+                      <TableCell className="border-r border-primary/30 bg-gradient-to-b from-primary/20 to-secondary/20">
                         <div className="flex items-center justify-center">
-                          <BarChart3 className="h-4 w-4 text-primary" />
+                          <motion.div
+                            animate={{ rotate: [0, 360] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                          >
+                            <Target className="h-6 w-6 text-primary" />
+                          </motion.div>
                         </div>
                       </TableCell>
                     )}
@@ -967,8 +979,8 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                       
                       if (column.key === 'cleanedClass') {
                         totalValue = `${filteredGroups.length} Groups`;
-                      } else if (column.key === 'displayOccurrences') {
-                        totalValue = totals.displayOccurrences.toString();
+                      } else if (column.key === 'totalOccurrences') {
+                        totalValue = totals.totalOccurrences.toString();
                       } else if (column.key === 'totalEmpty') {
                         totalValue = totals.totalEmpty.toString();
                       } else if (column.key === 'totalNonEmpty') {
@@ -977,29 +989,33 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                         totalValue = totals.totalCheckins.toString();
                       } else if (column.key === 'totalRevenue') {
                         totalValue = formatIndianCurrency(totals.totalRevenue);
-                      } else if (column.key === 'totalOccurrences') {
-                        totalValue = totals.totalOccurrences.toString();
                       } else if (column.key === 'totalCancelled') {
                         totalValue = totals.totalCancelled.toString();
                       } else if (column.key === 'classAverageIncludingEmpty') {
-                        const avg = totals.displayOccurrences > 0 ? totals.totalCheckins / totals.displayOccurrences : 0;
+                        const avg = totals.totalOccurrences > 0 ? totals.totalCheckins / totals.totalOccurrences : 0;
                         totalValue = avg.toFixed(1);
                       } else if (index === 0) {
                         totalValue = "TOTALS";
                       } else {
-                        totalValue = "-";
+                        totalValue = "—";
                       }
                       
                       return (
                         <TableCell 
                           key={`total-${column.key}`} 
                           className={cn(
-                            "py-3 px-6 border-r border-primary/20 last:border-r-0 text-primary font-semibold",
+                            "py-4 px-6 border-r border-primary/30 last:border-r-0 text-primary font-bold text-lg",
                             column.numeric ? "text-right" : "text-left",
                             "whitespace-nowrap"
                           )}
                         >
-                          {totalValue}
+                          <motion.span
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                          >
+                            {totalValue}
+                          </motion.span>
                         </TableCell>
                       );
                     })}
@@ -1007,11 +1023,17 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
                 </>
               ) : (
                 <TableRow>
-                  <TableCell colSpan={visibleColumns.length + 1} className="text-center py-12 text-muted-foreground">
-                    <div className="flex flex-col items-center gap-2">
-                      <Search className="h-8 w-8 text-muted-foreground/50" />
-                      <span>No results found</span>
-                    </div>
+                  <TableCell colSpan={visibleColumns.length + 1} className="text-center py-16 text-muted-foreground">
+                    <motion.div 
+                      className="flex flex-col items-center gap-4"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Search className="h-12 w-12 text-muted-foreground/50" />
+                      <span className="text-xl font-medium">No results found</span>
+                      <span className="text-sm">Try adjusting your search or filters</span>
+                    </motion.div>
                   </TableCell>
                 </TableRow>
               )}
@@ -1020,103 +1042,210 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
         </div>
       </div>
       
-      {/* Enhanced Footer */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 rounded-b-xl">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-          {/* Summary Stats */}
-          <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600 dark:text-slate-300">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary"></div>
-              <span className="font-medium">{filteredGroups.length}</span>
-              <span>{tableView === "grouped" ? "Groups" : "Rows"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ListChecks className="h-4 w-4 text-emerald-500" />
-              <span className="font-medium">{totals.totalCheckins.toLocaleString()}</span>
-              <span>Total Check-ins</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <IndianRupee className="h-4 w-4 text-amber-500" />
-              <span className="font-medium">{formatIndianCurrency(totals.totalRevenue)}</span>
-              <span>Total Revenue</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              <span className="font-medium">{totals.displayOccurrences.toLocaleString()}</span>
-              <span>Total Classes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ListFilter className="h-4 w-4 text-red-500" />
-              <span className="font-medium">{totals.totalEmpty.toLocaleString()}</span>
-              <span>Empty</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ListFilter className="h-4 w-4 text-green-500" />
-              <span className="font-medium">{totals.totalNonEmpty.toLocaleString()}</span>
-              <span>Non-empty</span>
-            </div>
+      {/* Enhanced Footer with Editable Summary */}
+      <div className="glass-card bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-xl border-primary/10 p-6 rounded-2xl shadow-2xl mt-6">
+        <div className="flex flex-col gap-6">
+          {/* Summary Stats with Enhanced Visual Appeal */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <motion.div 
+              className="bg-gradient-to-br from-primary/10 to-primary/5 p-4 rounded-xl border border-primary/20"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <Layers className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{filteredGroups.length}</p>
+                  <p className="text-sm text-muted-foreground font-medium">{tableView === "grouped" ? "Groups" : "Rows"}</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 rounded-xl border border-emerald-500/20"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/20">
+                  <ListChecks className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{totals.totalCheckins.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Check-ins</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 rounded-xl border border-amber-500/20"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/20">
+                  <IndianRupee className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{formatIndianCurrency(totals.totalRevenue)}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Revenue</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-4 rounded-xl border border-blue-500/20"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{totals.totalOccurrences.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Classes</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-gradient-to-br from-red-500/10 to-red-500/5 p-4 rounded-xl border border-red-500/20"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-500/20">
+                  <Users className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{totals.totalEmpty.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Empty</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="bg-gradient-to-br from-green-500/10 to-green-500/5 p-4 rounded-xl border border-green-500/20"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/20">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{totals.totalNonEmpty.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Non-empty</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Editable Summary Section */}
+          <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-primary/20 shadow-lg">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <Award className="h-6 w-6 text-primary" />
+                  </motion.div>
+                  Data Insights Summary
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingSummary(!isEditingSummary)}
+                  className="hover:bg-primary/10"
+                >
+                  {isEditingSummary ? 'Save' : 'Edit'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isEditingSummary ? (
+                <Textarea
+                  value={summaryNotes}
+                  onChange={(e) => setSummaryNotes(e.target.value)}
+                  placeholder="Add your insights and analysis notes here..."
+                  className="min-h-[120px] bg-background/50 border-primary/20"
+                />
+              ) : (
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-muted-foreground leading-relaxed">{summaryNotes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Enhanced Pagination */}
+          <div className="flex justify-center">
+            <Pagination>
+              <PaginationContent className="bg-background/80 backdrop-blur-sm rounded-xl border border-primary/20 px-2 shadow-lg">
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => goToPage(currentPage - 1)}
+                    className={cn(
+                      "transition-all duration-300",
+                      currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-primary/10 hover:scale-105"
+                    )}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                  let pageNumber;
+                  
+                  if (totalPages <= 5) {
+                    pageNumber = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNumber = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNumber = totalPages - 4 + i;
+                  } else {
+                    pageNumber = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        isActive={pageNumber === currentPage}
+                        onClick={() => goToPage(pageNumber)}
+                        className={cn(
+                          "cursor-pointer transition-all duration-300",
+                          pageNumber === currentPage 
+                            ? "bg-primary text-primary-foreground shadow-lg scale-110" 
+                            : "hover:bg-primary/10 hover:scale-105"
+                        )}
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => goToPage(currentPage + 1)}
+                    className={cn(
+                      "transition-all duration-300",
+                      currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-primary/10 hover:scale-105"
+                    )}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
           
-          {/* Enhanced Pagination */}
-          <Pagination>
-            <PaginationContent className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 px-2 shadow-sm">
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => goToPage(currentPage - 1)}
-                  className={cn(
-                    "transition-colors",
-                    currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-primary/10"
-                  )}
-                />
-              </PaginationItem>
-              
-              {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                let pageNumber;
-                
-                // Show pages around current page
-                if (totalPages <= 5) {
-                  pageNumber = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNumber = totalPages - 4 + i;
-                } else {
-                  pageNumber = currentPage - 2 + i;
-                }
-                
-                return (
-                  <PaginationItem key={pageNumber}>
-                    <PaginationLink
-                      isActive={pageNumber === currentPage}
-                      onClick={() => goToPage(pageNumber)}
-                      className={cn(
-                        "cursor-pointer transition-colors",
-                        pageNumber === currentPage 
-                          ? "bg-primary text-primary-foreground shadow-sm" 
-                          : "hover:bg-primary/10"
-                      )}
-                    >
-                      {pageNumber}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => goToPage(currentPage + 1)}
-                  className={cn(
-                    "transition-colors",
-                    currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-primary/10"
-                  )}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-        
-        <div className="mt-3 text-xs text-center text-slate-500 dark:text-slate-400">
-          Showing <span className="font-medium text-slate-700 dark:text-slate-300">{Math.min((currentPage - 1) * pageSize + 1, sortedGroups.length)}</span> to <span className="font-medium text-slate-700 dark:text-slate-300">{Math.min(currentPage * pageSize, sortedGroups.length)}</span> of <span className="font-medium text-slate-700 dark:text-slate-300">{sortedGroups.length}</span> {tableView === "grouped" ? "groups" : "rows"}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{Math.min((currentPage - 1) * pageSize + 1, sortedGroups.length)}</span> to <span className="font-semibold text-foreground">{Math.min(currentPage * pageSize, sortedGroups.length)}</span> of <span className="font-semibold text-foreground">{sortedGroups.length}</span> {tableView === "grouped" ? "groups" : "rows"}
+            </p>
+          </div>
         </div>
       </div>
     </div>
