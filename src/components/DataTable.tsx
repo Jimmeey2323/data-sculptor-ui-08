@@ -108,25 +108,20 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
     };
 
     if (tableView === "flat" || groupBy === "none") {
-      return data.map(item => {
-        // For flat view, calculate empty/non-empty based on individual occurrences
-        const emptyOccurrences = item.occurrences ? item.occurrences.filter(occ => occ.isEmpty).length : (item.totalCheckins === 0 ? 1 : 0);
-        const nonEmptyOccurrences = item.occurrences ? item.occurrences.filter(occ => !occ.isEmpty).length : (item.totalCheckins > 0 ? 1 : 0);
-        const totalOccurrencesCount = item.occurrences ? item.occurrences.length : 1;
-        
-        return {
-          ...item,
-          key: `flat-${data.indexOf(item)}`,
-          isChild: true,
-          // For flat view, each row represents individual occurrences
-          totalOccurrences: totalOccurrencesCount,
-          totalEmpty: emptyOccurrences,
-          totalNonEmpty: nonEmptyOccurrences,
-          // Recalculate averages based on actual occurrences
-          classAverageIncludingEmpty: totalOccurrencesCount > 0 ? item.totalCheckins / totalOccurrencesCount : 0,
-          classAverageExcludingEmpty: nonEmptyOccurrences > 0 ? item.totalCheckins / nonEmptyOccurrences : 0
-        };
-      });
+      return data.map(item => ({
+        ...item,
+        key: `flat-${data.indexOf(item)}`,
+        isChild: true,
+        // For flat view, each row represents one data entry, so totalOccurrences should be the actual occurrence count
+        totalOccurrences: item.occurrences ? item.occurrences.length : 1,
+        totalEmpty: item.occurrences ? item.occurrences.filter(occ => occ.isEmpty).length : (item.totalCheckins === 0 ? 1 : 0),
+        totalNonEmpty: item.occurrences ? item.occurrences.filter(occ => !occ.isEmpty).length : (item.totalCheckins > 0 ? 1 : 0),
+        classAverageIncludingEmpty: item.occurrences && item.occurrences.length > 0 ? item.totalCheckins / item.occurrences.length : (item.totalCheckins || 0),
+        classAverageExcludingEmpty: item.occurrences ? 
+          (item.occurrences.filter(occ => !occ.isEmpty).length > 0 ? 
+            item.totalCheckins / item.occurrences.filter(occ => !occ.isEmpty).length : 0) : 
+          (item.totalCheckins > 0 ? item.totalCheckins : 0)
+      }));
     }
     
     const groups: Record<string, any> = {};
@@ -154,31 +149,27 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
           totalNonPaid: 0,
           totalPayout: 0,
           totalTips: 0,
-          allOccurrences: [] // Track all occurrences across children
+          allOccurrences: []
         };
       }
       
-      // Add to children array with corrected values for individual rows
-      const childEmptyOccurrences = item.occurrences ? item.occurrences.filter(occ => occ.isEmpty).length : (item.totalCheckins === 0 ? 1 : 0);
-      const childNonEmptyOccurrences = item.occurrences ? item.occurrences.filter(occ => !occ.isEmpty).length : (item.totalCheckins > 0 ? 1 : 0);
-      const childTotalOccurrences = item.occurrences ? item.occurrences.length : 1;
-      
+      // Add to children array - each child represents one data entry
       groups[groupKey].children.push({
         ...item,
-        // Individual rows in grouped view should show their actual occurrence count
-        totalOccurrences: childTotalOccurrences,
-        totalEmpty: childEmptyOccurrences,
-        totalNonEmpty: childNonEmptyOccurrences,
-        // Recalculate averages for individual rows based on their occurrences
-        classAverageIncludingEmpty: childTotalOccurrences > 0 ? item.totalCheckins / childTotalOccurrences : 0,
-        classAverageExcludingEmpty: childNonEmptyOccurrences > 0 ? item.totalCheckins / childNonEmptyOccurrences : 0
+        totalOccurrences: item.occurrences ? item.occurrences.length : 1,
+        totalEmpty: item.occurrences ? item.occurrences.filter(occ => occ.isEmpty).length : (item.totalCheckins === 0 ? 1 : 0),
+        totalNonEmpty: item.occurrences ? item.occurrences.filter(occ => !occ.isEmpty).length : (item.totalCheckins > 0 ? 1 : 0),
+        classAverageIncludingEmpty: item.occurrences && item.occurrences.length > 0 ? item.totalCheckins / item.occurrences.length : (item.totalCheckins || 0),
+        classAverageExcludingEmpty: item.occurrences ? 
+          (item.occurrences.filter(occ => !occ.isEmpty).length > 0 ? 
+            item.totalCheckins / item.occurrences.filter(occ => !occ.isEmpty).length : 0) : 
+          (item.totalCheckins > 0 ? item.totalCheckins : 0)
       });
       
       // Collect all occurrences for the group
       if (item.occurrences) {
         groups[groupKey].allOccurrences.push(...item.occurrences);
       } else {
-        // Fallback: create a synthetic occurrence
         groups[groupKey].allOccurrences.push({
           date: item.date,
           checkins: item.totalCheckins,
@@ -189,35 +180,35 @@ export function DataTable({ data, trainerAvatars }: DataTableProps) {
         });
       }
       
-      // Update metrics - sum up the original values for the group
+      // Update group totals
       groups[groupKey].totalCheckins += Number(item.totalCheckins);
       groups[groupKey].totalRevenue += Number(item.totalRevenue);
-      groups[groupKey].totalOccurrences += Number(item.totalOccurrences);
       groups[groupKey].totalCancelled += Number(item.totalCancelled || 0);
       groups[groupKey].totalNonPaid += Number(item.totalNonPaid || 0);
       groups[groupKey].totalPayout += Number(item.totalPayout || 0);
       groups[groupKey].totalTips += Number(item.totalTips || 0);
     });
     
-    // Calculate group-level metrics based on all occurrences
+    // Calculate group-level metrics
     Object.values(groups).forEach((group: any) => {
-      // Set totalOccurrences to the total count of all occurrences in the group
-      group.totalOccurrences = group.allOccurrences.length;
+      // The Classes column should show the number of children (individual data entries)
+      group.totalOccurrences = group.children.length;
       
       // Calculate empty and non-empty based on all occurrences
       group.totalEmpty = group.allOccurrences.filter((occ: any) => occ.isEmpty).length;
       group.totalNonEmpty = group.allOccurrences.filter((occ: any) => !occ.isEmpty).length;
       
-      // Calculate averages for each group
-      group.classAverageIncludingEmpty = group.totalOccurrences > 0 
-        ? group.totalCheckins / group.totalOccurrences 
+      // Calculate averages
+      const totalOccurrenceCount = group.allOccurrences.length;
+      group.classAverageIncludingEmpty = totalOccurrenceCount > 0 
+        ? group.totalCheckins / totalOccurrenceCount 
         : 0;
         
       group.classAverageExcludingEmpty = group.totalNonEmpty > 0 
         ? group.totalCheckins / group.totalNonEmpty 
         : 0;
         
-      // Clean up the temporary allOccurrences array
+      // Clean up
       delete group.allOccurrences;
     });
     

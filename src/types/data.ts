@@ -76,7 +76,7 @@ export interface SortOption {
 }
 
 export interface ChartConfig {
-  type: 'bar' | 'line' | 'pie' | 'scatter' | 'donut';
+  type: 'bar' | 'line' | 'pie' | 'scatter' | 'donut' | 'area' | 'radar';
   primaryMetric: keyof ProcessedData;
   groupBy: keyof ProcessedData;
 }
