@@ -84,7 +84,7 @@ export const trainerAvatars: Record<string, string> = {
   "Anisha Shah": "https://i.imgur.com/7GM2oPn.jpg",
   "Saniya Jaiswal": "https://i.imgur.com/EP32RoZ.jpg",
   "Vivaran Dhasmana": "https://i.imgur.com/HGrGuq9.jpg",
-  "Kajol Kanchan": "https://postimg.cc/Cz9khg6L",
+  "Kajol Kanchan": "https://i.postimg.cc/s2t4ypt9/80638-picture.jpg",
   "Veena Narasimhan": "https://i.postimg.cc/T339c2Vm/150320-picture.jpg"
 };
 
@@ -283,23 +283,23 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in bg-gradient-to-b from-[#F8F9FC] to-[#F0F4FF] dark:from-gray-900 dark:to-gray-950 min-h-screen">
-      <div className="bg-white dark:bg-gray-900 border-b shadow-sm sticky top-0 z-50">
+      <div className="bg-white/80 dark:bg-gray-900/80 border-b shadow-lg backdrop-blur-lg sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center">
             <motion.img 
               src="https://i.imgur.com/9mOm7gP.png" 
               alt="Logo" 
-              className="h-10 w-auto mr-3"
+              className="h-10 w-auto mr-3 drop-shadow-lg"
               initial={{ rotate: 0 }}
               animate={{ rotate: 360 }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             />
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-[#1E2F4D] dark:text-slate-100">
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#1E2F4D] to-[#4A5568] dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                 Class Analytics Dashboard
               </h1>
               <p className="text-xs text-[#6B7A99] dark:text-slate-400">
-                {filteredData.length} Classes | {filters.length} Active Filters
+                {filteredData.length} Classes | {filters.length} Active Filters | Advanced Analytics
               </p>
             </div>
           </div>
@@ -400,8 +400,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         <MetricsPanel data={filteredData} />
         
+        <div className="mb-6">
+          <ChartPanel data={filteredData} />
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <Card className="lg:col-span-3 border-[#E0E6F0] rounded-xl shadow-sm">
+          <Card className="lg:col-span-3 border-0 shadow-xl bg-gradient-to-br from-white/90 to-slate-50/50 dark:from-gray-900/90 dark:to-gray-800/50 backdrop-blur-sm">
             <CardContent className="p-6">
               <TopBottomClasses data={filteredData} />
             </CardContent>
@@ -409,25 +413,27 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
         
         <div className="mb-6">
-          <Card className="border-[#E0E6F0] rounded-xl shadow-sm">
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-white/90 to-slate-50/50 dark:from-gray-900/90 dark:to-gray-800/50 backdrop-blur-sm">
             <CardContent className="p-6">
               <Tabs defaultValue="trainers" value={activeComparisonTab} onValueChange={setActiveComparisonTab} className="w-full">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-[#323B4C] dark:text-white">Comparison Analysis</h2>
-                  <TabsList>
-                    <TabsTrigger value="trainers" onClick={() => setActiveComparisonTab("trainers")}>
+                  <h2 className="text-xl font-semibold bg-gradient-to-r from-[#323B4C] to-[#4A5568] dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                    Comparison Analysis
+                  </h2>
+                  <TabsList className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+                    <TabsTrigger value="trainers" onClick={() => setActiveComparisonTab("trainers")} className="data-[state=active]:bg-primary/10">
                       <Users className="w-4 h-4 mr-2" />
                       Trainers
                     </TabsTrigger>
-                    <TabsTrigger value="locations" onClick={() => setActiveComparisonTab("locations")}>
+                    <TabsTrigger value="locations" onClick={() => setActiveComparisonTab("locations")} className="data-[state=active]:bg-primary/10">
                       <MapPin className="w-4 h-4 mr-2" />
                       Locations
                     </TabsTrigger>
-                    <TabsTrigger value="classes" onClick={() => setActiveComparisonTab("classes")}>
+                    <TabsTrigger value="classes" onClick={() => setActiveComparisonTab("classes")} className="data-[state=active]:bg-primary/10">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Classes
                     </TabsTrigger>
-                    <TabsTrigger value="time" onClick={() => setActiveComparisonTab("time")}>
+                    <TabsTrigger value="time" onClick={() => setActiveComparisonTab("time")} className="data-[state=active]:bg-primary/10">
                       <Clock className="w-4 h-4 mr-2" />
                       Time & Day
                     </TabsTrigger>
@@ -456,17 +462,19 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         <ViewSwitcherWrapper viewMode={viewMode} setViewMode={setViewMode} />
 
-        <div className="bg-white dark:bg-gray-900 border border-[#E0E6F0] rounded-xl shadow-sm mb-6">
+        <div className="bg-white/80 dark:bg-gray-900/80 border-0 shadow-xl backdrop-blur-lg rounded-xl mb-6">
           {viewMode === 'table' && (
             <>
               <Collapsible
                 open={!isTableFilterCollapsed}
                 onOpenChange={(open) => setIsTableFilterCollapsed(!open)}
               >
-                <div className="flex items-center justify-between p-4 border-b">
-                  <h3 className="text-lg font-semibold text-[#323B4C] dark:text-white">Data Table</h3>
+                <div className="flex items-center justify-between p-4 border-b border-border/50">
+                  <h3 className="text-lg font-semibold bg-gradient-to-r from-[#323B4C] to-[#4A5568] dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                    Enhanced Data Table
+                  </h3>
                   <CollapsibleTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-1 border-[#E0E6F0]">
+                    <Button variant="outline" size="sm" className="flex items-center gap-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-primary/20">
                       <Filter className="h-4 w-4" />
                       <span className="hidden sm:inline">Table Filters</span>
                       {isTableFilterCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -475,8 +483,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 
                 <CollapsibleContent>
-                  <div className="p-4 border-b bg-gray-50 dark:bg-gray-800">
-                    <p className="text-sm text-muted-foreground">Table-specific filters coming soon...</p>
+                  <div className="p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
+                    <p className="text-sm text-muted-foreground">Advanced table-specific filters and sorting options coming soon...</p>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
